@@ -1,0 +1,9 @@
+function update_debug
+		set_control_par($move_element_x,$CONTROL_PAR_HIDE,%debug_states[debug_view])
+		set_control_par($move_element_y,$CONTROL_PAR_HIDE,%debug_states[debug_view])
+end function
+
+function updateMoveElement
+  move_control_px(verb,$move_element_x,$move_element_y)
+	message("X: " & $move_element_x & " | Y: " & $move_element_y)
+end function

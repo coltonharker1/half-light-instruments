@@ -1,0 +1,5 @@
+declare @background 							:= "background"
+declare @slider_56px 							:= "slider_56px" 
+declare @sample_type_button 		    		:= "sample_type_button"
+declare @wide_button 		        			:= "wide_button"
+declare @sample_types_animation 				:= "sample_types_animation"

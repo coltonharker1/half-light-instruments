@@ -1,0 +1,13 @@
+SummonDebugSlider(move_element_x, "idk", 0, $width, 750)
+PlaceSlider(move_element_x, 0, 0)
+
+SummonDebugSlider(move_element_y, "idk", 0, $height, 750) //macro SummonDebugSlider(#name#, #img#, #min#, #max#, #drag#)
+PlaceSlider(move_element_y, 100, 0)
+
+SummonButton(debug_view, "idk", 200, 0, "")
+
+// set_control_par($move_element_x,$CONTROL_PAR_HIDE,$HIDE_WHOLE_CONTROL)
+// set_control_par($move_element_y,$CONTROL_PAR_HIDE,$HIDE_WHOLE_CONTROL)
+{if(debug = 0)
+	set_control_par(debug_view,$CONTROL_PAR_HIDE,$HIDE_WHOLE_CONTROL)
+end if}

@@ -1,0 +1,13 @@
+declare $num_debug_states := 2
+	declare %debug_states[2]
+	%debug_states[0] := $HIDE_WHOLE_CONTROL
+	%debug_states[1] := $HIDE_PART_NOTHING
+
+declare $NUM_MIX_ENGINE_PARAMS := 2
+	declare %FILTERENGINE_PARAMS[2]
+	%ENGINE_PARAMS[0] := $ENGINE_PAR_VOLUME
+	%ENGINE_PARAMS[1] := $ENGINE_PAR_SENDLEVEL_0
+
+declare $NUM_FILTER_ENGINE_PARAMS := 2
+	declare %FILTER_ENGINE_PARAMS[2]
+	%ENGINE_PARAMS[0] := $ENGINE_PAR_CUTOFF

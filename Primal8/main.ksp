@@ -1,0 +1,222 @@
+import "HandyDandyMacros.ksp"
+//import "KSPMathV702.ksp"
+
+on init
+	set_voice_limit($NI_VL_TMPRO_STANDARD,1)
+	set_voice_limit($NI_VL_TMPRO_HQ,1)
+	declare $width := 739 //1000
+	declare $height := 443 // 596
+
+	import "images.ksp"
+	//import "debug_ui.ksp"
+	declare $automation_id := 0
+
+	declare $counter := 0
+
+	declare num_sample_types := 3
+	declare num_sample_wide_types := 4
+	declare num_sample_normal_types := 2
+	declare $current_sample_type := 0
+
+	declare $i := 0
+
+	declare %groups[12] := (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+
+	declare %aggressive_groups[2] 	:= (0, 1)
+	declare %smooth_groups[2] 		:= (2, 3)
+	declare %punch_groups[2] 		:= (4, 5)
+
+	declare %aggressive_groups_wide[4] 	:= (0, 1, 6, 7)
+	declare %smooth_groups_wide[4] 		:= (2, 3, 8, 9)
+	declare %punch_groups_wide[4] 		:= (4, 5, 10, 11)
+
+	declare %current_samples[3]
+
+
+	declare %slider_uids[100]
+	declare %sample_uids[100]
+	declare %defaults[100]
+
+
+	declare %notes[10] // holds $EVENT_NOTE. checks to see if the event note has finished or not. if not, interrupts and stores event note 
+	declare %note_ids[10] //holds 
+	declare $notes_held := 0
+
+	declare $last_id
+	LetThereBePerfView($height,$width)
+	
+	//SummonSlider(#name#, #img#, #min#, #max#, #X#, #Y#, #def#, #help#)
+
+	SummonButton(sample_type, @sample_type_button, 340, 55, "test button")
+	SummonButton(wide, @wide_button, 340, 203, "test button")
+
+// background animation needs to be last label
+	SummonAnimationLabel(background_label, @background, 0, 0)
+
+// ADSR
+
+	SummonSlider(attack, @slider_61px, 25008, 1000000, 48, 330, 25008, "attack")
+	SummonSlider(decay, @slider_61px, 336364, 1000000, 204, 330, 628563, "decay")
+	SummonSlider(sustain, @slider_61px, 0, 1000000, 480, 330, 1000000, "sustain")
+	SummonSlider(release, @slider_61px, 189935, 1000000, 635, 330, 531854, "release")
+
+//SAMPLE TYPES
+
+	SummonAnimationLabel(aggressive_label, @half_circle_label, 187, 533)
+	SummonAnimationLabel(punch_label, @half_circle_label, 440, 533)
+	SummonAnimationLabel(smooth_label, @half_circle_label,702, 533) // 533
+
+	%sample_uids[0] := aggressive_label_id
+	%sample_uids[2] := smooth_label_id
+	%sample_uids[1] := punch_label_id
+
+	$sample_type := 0
+	set_control_par(aggressive_label_id, $CONTROL_PAR_PICTURE_STATE, 1)
+	current_samples[0] := 1
+
+	message("")
+
+	i := 0
+	while($i < $NUM_GROUPS)
+		set_engine_par($ENGINE_PAR_ATTACK, defaults[0], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		set_engine_par($ENGINE_PAR_DECAY, defaults[1], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		set_engine_par($ENGINE_PAR_SUSTAIN, defaults[2], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		set_engine_par($ENGINE_PAR_RELEASE, defaults[3], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		set_engine_par($ENGINE_PAR_HOLD, defaults[4], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		inc(i)
+	end while
+
+	$attack 	:= defaults[0]
+	$decay 		:= defaults[1]
+	$sustain 	:= defaults[2]
+	$release 	:= defaults[3]
+	
+
+end on
+
+on note
+	note_off($last_id)
+	disallow_group($ALL_GROUPS)
+	$i := 0
+	if (current_samples[0] = 1)
+			if (wide = 1)
+				while(i < num_sample_wide_types)
+					allow_group(smooth_groups_wide[i])
+					inc(i)
+				end while
+				else
+					while(i < num_sample_normal_types)
+						allow_group(smooth_groups[i])
+						inc(i)
+					end while
+			end if
+	end if
+
+	if (current_samples[1] = 1)
+			if (wide = 1)
+				while(i < num_sample_wide_types)
+					allow_group(aggressive_groups_wide[i])
+					inc(i)
+				end while
+				else
+					while(i < num_sample_normal_types)
+						allow_group(aggressive_groups[i])
+						inc(i)
+					end while
+			end if
+	end if
+
+	if (current_samples[2] = 1)
+			if (wide = 1)
+				while(i < num_sample_wide_types)
+					allow_group(punch_groups_wide[i])
+					inc(i)
+				end while
+				else
+					while(i < num_sample_normal_types)
+						allow_group(punch_groups[i])
+						inc(i)
+					end while
+			end if
+	end if
+	$last_id := $EVENT_ID
+	message($EVENT_ID & " " & $EVENT_NOTE)
+//
+end on
+
+on release
+	%notes[$EVENT_ID] := 1
+	i := 0
+	message("release ID: " & $EVENT_ID & " release NOTE: "" & $EVENT_NOTE)
+end on
+
+on ui_control(sample_type)
+
+	inc(counter)
+	i := 0
+
+	while(i < num_sample_types)
+		current_samples[i] := 0
+		inc(i)
+	end while
+
+	current_sample_type := ($counter mod 3)
+	current_samples[current_sample_type] := 1
+
+	
+
+	message("sample type " & current_sample_type)
+	set_control_par(background_label_id, $CONTROL_PAR_PICTURE_STATE, current_sample_type)
+
+end on
+
+on ui_control(attack)
+	i := 0
+	while(i < $NUM_GROUPS)
+		set_engine_par($ENGINE_PAR_ATTACK, attack, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		message(get_engine_par($ENGINE_PAR_ATTACK, 0, find_mod(0, "ENV_AHDSR"), -1))
+		inc(i)
+	end while
+end on
+
+on ui_control(decay)
+	i := 0
+	while(i < $NUM_GROUPS)
+		set_engine_par($ENGINE_PAR_DECAY, decay, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		message("decay: " & get_engine_par($ENGINE_PAR_DECAY, 0, find_mod(0, "ENV_AHDSR"), -1))
+		inc(i)
+	end while
+end on
+
+on ui_control(sustain)
+	i := 0
+	while(i < $NUM_GROUPS)
+		set_engine_par($ENGINE_PAR_SUSTAIN, sustain, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		message("sustain: " & get_engine_par($ENGINE_PAR_SUSTAIN, 0, find_mod(0, "ENV_AHDSR"), -1))
+		inc(i)
+	end while
+end on
+
+on ui_control(release)
+	i := 0
+	while(i < $NUM_GROUPS)
+		set_engine_par($ENGINE_PAR_RELEASE, release, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		message("release: " & get_engine_par($ENGINE_PAR_RELEASE, 0, find_mod(0, "ENV_AHDSR"), -1))
+		inc(i)
+	end while
+end on
+
+on ui_control(wide)
+	
+end on
+
+
+// on ui_control(move_element_x)
+// 	move_control_px(attack,$move_element_x,$move_element_y)
+// 	message($move_element_x & "," & $move_element_y)
+// end on
+
+// on ui_control(move_element_y)
+// 	move_control_px(attack,$move_element_x,$move_element_y)
+// 	message($move_element_x & "," & $move_element_y)
+// end on

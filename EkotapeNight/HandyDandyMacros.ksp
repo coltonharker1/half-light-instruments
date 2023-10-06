@@ -1,0 +1,60 @@
+// UI Functions/Macros
+// written by me
+
+macro LetThereBePerfview(#h#,#w#,#img#)
+	make_perfview
+	set_ui_height_px(#h#)
+	set_ui_width_px(#w#)
+	set_control_par_str($INST_WALLPAPER_ID,$CONTROL_PAR_PICTURE,#img#)
+end macro
+
+// Slider Macros
+
+macro SummonSlider(#name#, #img#, #min#, #max#, #drag#)
+	declare ui_slider #name#(#min#,#max)
+	make_persistent(#name#)
+	declare #name#_id
+	#name#_id := get_ui_id(#name#)
+	set_control_par_str(#name#_id, $CONTROL_PAR_PICTURE, #img#)
+	set_control_par(#name#, $CONTROL_PAR_MOUSE_BEHAVIOUR, #drag#)
+end macro
+
+macro PlaceSlider(#name#, #X#, #Y#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+end macro
+
+// Button Macros
+
+macro SummonButton(#name#, #img#)
+	make_persistent(#name#)
+	declare #name#_id := get_ui_id(#name#)
+	set_control_par_str(#name#_id,$CONTROL_PAR_PICTURE,#img#)
+end macro
+
+macro PlaceButton(#name#, #X#, #Y#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+	set_text(#name#,"")
+end macro
+
+// Menu Macros
+
+macro SummonMenu(#name#, #img#)
+	make_persistent(#name#)
+	declare #name#_id := get_ui_id(#name#)
+	set_control_par_str(#name#_id,$CONTROL_PAR_PICTURE,#img#)
+	set_control_par(#name#_id, $CONTROL_PAR_TEXTPOS_Y, 50)
+end macro
+
+macro PlaceMenu(#name#, #X#, #Y#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+end macro
+
+// Label Macros
+
+macro PlaceLabel(#name#, #X#, #Y#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+end macro

@@ -1,0 +1,244 @@
+import "HandyDandyMacros.ksp"
+import "KSPMathV702.ksp"
+
+
+// lets figure out how to get KSP math working again
+
+on init
+	SetMathMode(FL+FE,DG)
+	declare v1
+	declare v2
+	declare xv
+	import "images.ksp"
+
+	message("")
+
+	set_voice_limit($NI_VL_TMPRO_STANDARD,1)
+	set_voice_limit($NI_VL_TMPRO_HQ,1)
+
+	// import "debug_ui.ksp"
+	declare $width := 739
+	declare $height := 442
+	declare $automation_id := 0
+	declare $counter := 0
+	declare num_sample_types := 3
+	declare num_sample_wide_types := 4
+	declare num_sample_normal_types := 2
+	declare $current_sample_type
+	declare $i := 0
+	declare %groups[12] := (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+
+	declare %groups_two[12] := (0, 1, 6, 7, 2, 3, 8, 9, 4, 5, 10, 11)
+
+	declare %aggressive_groups[2] 	:= (0, 1)
+	declare %smooth_groups[2] 		:= (2, 3)
+	declare %punch_groups[2] 		:= (4, 5)
+	declare %aggressive_groups_wide[4] 	:= (0, 1, 6, 7)
+	declare %smooth_groups_wide[4] 		:= (2, 3, 8, 9)
+	declare %punch_groups_wide[4] 		:= (4, 5, 10, 11)
+	declare %current_samples[3]
+	declare %slider_uids[100]
+	declare %sample_uids[100]
+	declare %defaults[100]
+	declare $last_id
+
+	
+	//current_samples[0] := 1
+
+	LetThereBePerfView($height,$width, @background)
+
+	SummonButton(sample_type, @sample_type_button, 340, 55, "sample type")
+	SummonButton(wide, @wide_button, 340, 203, "wide")
+	SummonAnimationLabel(sample_types_label, @sample_types_animation, 295, 147)
+
+
+
+	SummonSlider(attack, @slider_56px, 25008, 1000000, 48, 330, 25008, "attack")
+	SummonSlider(decay, @slider_56px, 336364, 1000000, 204, 330, 628563, "decay")
+	SummonSlider(sustain, @slider_56px, 0, 1000000, 480, 330, 1000000, "sustain")
+	SummonSlider(release, @slider_56px, 189935, 1000000, 635, 330, 531854, "release")
+
+	SummonMenu(sample_type_state, @slider_56px, 0, 3)
+	add_menu_item (sample_type_state, "smooth",0)
+	add_menu_item (sample_type_state, "punch",1)
+	add_menu_item (sample_type_state, "aggressive",2)
+	
+	set_control_par(sample_type_state, $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+
+	i := 0
+
+	
+end on
+
+on_post_init
+	call update_picture_state
+end_on
+
+function update_picture_state
+		set_control_par(sample_types_label_id, $CONTROL_PAR_PICTURE_STATE, sample_type_state)
+		current_sample_type := sample_type_state
+		current_samples[current_sample_type] := 1
+		counter := current_sample_type
+		message("sample type staterrrrrrsssss: " & get_control_par(sample_type_state,$CONTROL_PAR_VALUE) & " " & current_sample_type)
+end function
+
+on note
+
+	// allow all groups in the group array 
+	// shut off last note - this instrument is MONO
+	note_off($last_id)
+
+	disallow_group($ALL_GROUPS)
+	$i := 0
+
+	// check the sample type UI control for where current_samples comes from
+	if (current_samples[0] = 1)
+			if (wide = 1)
+				while(i < num_sample_wide_types)
+					allow_group(smooth_groups_wide[i])
+					inc(i)
+				end while
+				else
+					while(i < num_sample_normal_types)
+						allow_group(smooth_groups[i])
+						inc(i)
+					end while
+			end if
+	end if
+	if (current_samples[1] = 1)
+			if (wide = 1)
+				while(i < num_sample_wide_types)
+					allow_group(punch_groups_wide[i])
+					inc(i)
+				end while
+				else
+					while(i < num_sample_normal_types)
+						allow_group(punch_groups[i])
+						inc(i)
+					end while
+			end if
+	end if
+	if (current_samples[2] = 1)
+			if (wide = 1)
+				while(i < num_sample_wide_types)
+					allow_group(aggressive_groups_wide[i])
+					inc(i)
+				end while
+				else
+					while(i < num_sample_normal_types)
+						allow_group(aggressive_groups[i])
+						inc(i)
+					end while
+			end if
+	end if
+
+	// save for beginning of this callback
+	$last_id := $EVENT_ID
+
+end on
+
+on ui_control(sample_type)
+
+	// toggle sample type
+	// clear group array
+	// check if wide flag is on, if so - add all of sample type groups to group array
+	// if not - do not include the wide samples in the array
+	// bam?
+
+	inc(counter)
+	i := 0
+
+	// clear the list that holds current sample types 
+	while(i < num_sample_types)
+		current_samples[i] := 0
+		inc(i)
+	end while
+
+	// choose sample type 0 = smooth, 1 = punch, 2 = aggro
+	current_sample_type := ($counter mod 3)
+	//message(current_sample_type)
+
+	//PLAYGROUND
+
+
+	// update the arr that this sample type is playing
+	current_samples[current_sample_type] := 1
+
+	// change the background to display correct sample type
+	set_control_par(sample_types_label, $CONTROL_PAR_PICTURE_STATE, current_sample_type)
+	sample_type_state := current_sample_type
+	message("sample type statess: " & get_control_par(sample_type_state,$CONTROL_PAR_VALUE))
+	//set_text (sample_type_state,current_sample_type)
+	//message("sample type state: " & get_menu_item_value(sample_type_state,current_sample_type))
+
+end on
+
+on ui_control(attack)
+	i := 0
+	while(i < $NUM_GROUPS)
+		if (get_control_par(get_ui_id(attack),$CONTROL_PAR_KEY_ALT) = 1)
+			set_engine_par($ENGINE_PAR_ATTACK, defaults[0], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+			$attack := defaults[0]
+			else
+				set_engine_par($ENGINE_PAR_ATTACK, attack, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		end if
+		inc(i)
+	end while
+end on
+
+on ui_control(decay)
+	i := 0
+	while(i < $NUM_GROUPS)
+		if (get_control_par(get_ui_id(decay),$CONTROL_PAR_KEY_ALT) = 1)
+			set_engine_par($ENGINE_PAR_DECAY, defaults[1], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+			$decay := defaults[1]
+			else
+				set_engine_par($ENGINE_PAR_DECAY, decay, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		end if
+		inc(i)
+	end while
+end on
+
+on ui_control(sustain)
+	i := 0
+	while(i < $NUM_GROUPS)
+		if (get_control_par(get_ui_id(sustain),$CONTROL_PAR_KEY_ALT) = 1)
+			set_engine_par($ENGINE_PAR_SUSTAIN, defaults[2], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+			$sustain := defaults[2]
+			else
+				set_engine_par($ENGINE_PAR_SUSTAIN, sustain, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		end if
+		inc(i)
+	end while
+end on
+
+on ui_control(release)
+	i := 0
+	while(i < $NUM_GROUPS)
+		if (get_control_par(get_ui_id(release),$CONTROL_PAR_KEY_ALT) = 1)
+			set_engine_par($ENGINE_PAR_RELEASE, defaults[3], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+			$release := defaults[3]
+			else
+				set_engine_par($ENGINE_PAR_RELEASE, release, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		end if
+		inc(i)
+	end while
+end on
+
+on ui_control(wide)
+	// check to see if the wide samples are currently in the array
+	// if not add them 
+	// use the search() function to see if they are in the array
+	
+end on
+
+
+// on ui_control(move_element_x)
+// 	move_control_px(sample_types_label,$move_element_x,$move_element_y)
+// 	message($move_element_x & "," & $move_element_y)
+// end on
+
+// on ui_control(move_element_y)
+// 	move_control_px(sample_types_label,$move_element_x,$move_element_y)
+// 	message($move_element_x & "," & $move_element_y)
+// end on

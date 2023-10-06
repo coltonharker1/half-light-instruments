@@ -1,0 +1,152 @@
+// UI Functions/Macros
+// written by me
+
+macro LetThereBePerfView(#h#,#w#) //(#h#,#w#,#img#)
+	make_perfview
+	set_ui_height_px(#h#)
+	set_ui_width_px(#w#)
+	//set_control_par_str($INST_WALLPAPER_ID,$CONTROL_PAR_PICTURE,#img#)
+end macro
+
+// Slider Macros
+
+macro SummonSlider(#name#, #img#, #min#, #max#, #X#, #Y#, #def#, #help#)
+	declare ui_slider $#name#(#min#,#max#)
+	make_persistent(#name#)
+	declare #name#_id
+	#name#_id := get_ui_id(#name#)
+	set_control_par_str(#name#_id, $CONTROL_PAR_PICTURE, #img#)
+	set_control_par(#name#, $CONTROL_PAR_MOUSE_BEHAVIOUR, -1000)
+	set_control_par(get_ui_id(#name#),$CONTROL_PAR_DEFAULT_VALUE,#def#)
+	set_control_par_str(get_ui_id(#name#),$CONTROL_PAR_HELP,#help#)
+	set_control_par_str(get_ui_id(#name#),$CONTROL_PAR_ALLOW_AUTOMATION,1)
+	set_control_par(get_ui_id(#name#), $CONTROL_PAR_AUTOMATION_ID, automation_id)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+	%slider_uids[automation_id] := $#name#_id
+	%defaults[automation_id] := #def#
+	#name# := #def#
+	inc(automation_id)
+end macro
+
+macro SummonDebugSlider(#name#, #img#, #min#, #max#, #drag#)
+	declare ui_slider $#name#(#min#,#max#)
+	make_persistent(#name#)
+	declare #name#_id
+	#name#_id := get_ui_id(#name#)
+	set_control_par_str(#name#_id, $CONTROL_PAR_PICTURE, #img#)
+	set_control_par(#name#, $CONTROL_PAR_MOUSE_BEHAVIOUR, #drag#)
+end macro
+
+macro PlaceSlider(#name#, #X#, #Y#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+end macro
+
+// Button Macros
+
+macro SummonButton(#name#, #img#, #X#, #Y#, #help#)
+	declare ui_button #name#
+	make_persistent(#name#)
+	declare #name#_id := get_ui_id(#name#)
+	set_control_par_str(#name#_id,$CONTROL_PAR_PICTURE,#img#)
+	set_control_par_str(get_ui_id(#name#),$CONTROL_PAR_HELP,#help#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+	set_text(#name#,"")
+	#name# := 0
+end macro
+
+macro SummonRangeButton(#name#, #img#, #X#, #Y#, #help#)
+	declare ui_button #name#
+	make_persistent(#name#)
+	declare #name#_id := get_ui_id(#name#)
+	set_control_par_str(#name#_id,$CONTROL_PAR_PICTURE,#img#)
+	set_control_par_str(get_ui_id(#name#),$CONTROL_PAR_HELP,#help#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+	set_text(#name#,"")
+	#name# := 0
+	ranges[range_num] := #name#_id
+	inc(range_num)
+end macro
+
+// macro PlaceButton(#name#, #X#, #Y#)
+// 	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+// 	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+// 	set_text(#name#,"")
+// end macro
+
+// Menu Macros
+
+macro SummonMenu(#name#, #img#, #X#, #Y#)
+	declare ui_menu #name#
+	make_persistent(#name#)
+	declare #name#_id := get_ui_id(#name#)
+	set_control_par_str(#name#_id,$CONTROL_PAR_PICTURE,#img#)
+	set_control_par(#name#_id, $CONTROL_PAR_TEXTPOS_Y, 50)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+end macro
+
+// macro PlaceMenu(#name#, #X#, #Y#)
+// 	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+// 	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+// end macro
+
+// Label Macros
+
+macro SummonLabel(#name#, #X#, #Y#)
+	declare ui_label #name# (1,1)
+	declare #name#_id := get_ui_id(#name#)
+	set_text (#name#,"")
+	hide_part (#name#,$HIDE_PART_BG)
+	make_persistent(#name#)
+	set_control_par(#name#_id,$CONTROL_PAR_TEXT_ALIGNMENT,1)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+end macro
+
+macro SummonAnimationLabel(#name#, #img#, #X#, #Y#)
+	declare ui_label #name# (1,1)
+	declare #name#_id := get_ui_id(#name#)
+	make_persistent(#name#)
+	set_text (#name#,"")
+	// set_control_par_str(#name#_id, $CONTROL_PAR_TEXT,””)
+	set_control_par_str(#name#_id, $CONTROL_PAR_PICTURE, #img#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+end macro
+
+// macro PlaceLabel(#name#, #X#, #Y#)
+// 	set_control_par(#name#_id,$CONTROL_PAR_POS_X, #X#)
+// 	set_control_par(#name#_id,$CONTROL_PAR_POS_Y, #Y#)
+// end macro
+
+// GROUP MACROS
+
+macro ToggleGroup(#event#,#group#, #bool#)
+	set_event_par_arr(#event#, $EVENT_PAR_ALLOW_GROUP, #bool#, #group#)
+end macro
+
+macro ToggleGroups(#event#, booly) // Toggle all groups on/off
+	set_event_par_arr(#event#, $EVENT_PAR_ALLOW_GROUP, booly, -1)
+end macro
+
+macro AllowGroup(#group#, #size#)
+	i := 0
+	while(i < #size#)
+		 allow_group(#group#[i])
+		 inc(i)
+	end while
+end macro
+
+macro DisallowGroup(#group#, #size#)
+	i := 0
+	while(i < #size#)
+		 disallow_group(#group#[i])
+		 inc(i)
+	end while
+end macro
+
+

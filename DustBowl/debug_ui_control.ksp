@@ -1,0 +1,11 @@
+on ui_control (debug_view)
+	call update_debug
+end on
+
+on ui_control($move_element_x)
+	call updateMoveElement
+end on
+
+on ui_control($move_element_y)
+	call updateMoveElement
+end on

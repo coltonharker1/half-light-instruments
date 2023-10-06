@@ -1,0 +1,320 @@
+import "HandyDandyMacros.ksp"
+import "KSPMathV702.ksp"
+
+on init
+
+SET_CONDITION(NO_SYS_SCRIPT_RLS_TRIG)
+////////////////////////////// DEBUG
+	declare $debug := 1
+	declare $DEF_drag := -1000
+	declare $DEF_min := 0
+	declare $DEF_max := 1000000
+	declare width := 1000
+	declare height := 370
+	import "debug_ui.ksp"
+//////////////////////////////
+
+	SetMathMode(FL+FE,DG)
+	import "verb_ep.ksp"
+	declare polyphonic $EID
+	declare $flag := 0
+	declare $keys_down := 0
+	declare polyphonic $sus_pedal
+  declare polyphonic $parent_id
+	declare polyphonic rls_on
+	declare %key_id[128]
+
+// BIG BOBS
+	declare v1
+	declare v2
+	declare xv
+
+// UI ELEMENTS
+	declare @slider_image := "test_slider"
+	declare @slider_img := "sliders3"
+
+// PANELS
+	declare ui_panel $front_panel
+	declare ui_panel $back_panel
+	declare $offset := 438
+
+// OL' RELIABLE
+	declare $i
+
+// DEFAULT VALS
+	declare verb_defval := 628900 // 0db
+
+// MAX//MIN VALS
+	declare verb_max := 1168
+	declare hammer_max := 1000
+	declare pedal_max := 1000
+
+	declare $num_debug_states := 2
+	declare %debug_states[2]
+	%debug_states[0] := $HIDE_WHOLE_CONTROL
+	%debug_states[1] := $HIDE_PART_NOTHING
+
+	declare $num_note := 4
+	declare %note_group[3]
+	%note_group[0] := 0
+	%note_group[1] := 1
+	%note_group[2] := 2
+	%note_group[3] := 3
+
+	declare $num_release := 3
+	declare %release_group[3]
+	%release_group[0] := 4
+	%release_group[1] := 5
+	%release_group[2] := 6
+
+	declare $num_pedal := 8
+	declare %pedal_group[8]
+	%pedal_group[0] := 7
+	%pedal_group[1] := 8
+	%pedal_group[2] := 9
+	%pedal_group[3] := 10
+	%pedal_group[4] := 11
+	%pedal_group[5] := 12
+	%pedal_group[6] := 13
+	%pedal_group[7] := 14
+
+	declare $num_hit := 12
+	declare %hit_group[12]
+	%hit_group[0] := 0
+	%hit_group[1] := 1
+	%hit_group[2] := 2
+	%hit_group[3] := 3
+	%hit_group[4] := 7
+	%hit_group[5] := 8
+	%hit_group[6] := 9
+	%hit_group[7] := 10
+	%hit_group[8] := 11
+	%hit_group[9] := 12
+	%hit_group[10] := 13
+	%hit_group[11] := 14
+
+	declare $new_id
+
+	LetThereBePerfview(height,width,"background.png")
+
+// LOW CONTOUR
+	SummonSlider(low, @slider_image, $DEF_min, 445331, $DEF_drag)
+	PlaceSlider(low, 317, 152) // 316, 151 
+	$low -> parent_panel := get_ui_id($front_panel)
+
+// VERB
+	SummonSlider(verb, @slider_image, $DEF_min, $verb_max, $DEF_drag)
+	verb -> parent_panel := get_ui_id($front_panel)
+	PlaceSlider(verb, 499, 152) 
+
+// HAMMER
+	SummonSlider(hammer, @slider_image, $DEF_min, hammer_max, $DEF_drag)
+	PlaceSlider(hammer, 665, 152) 
+	$hammer -> parent_panel := get_ui_id($front_panel)
+
+// PEDAL
+	SummonSlider(pedal, @slider_image, $DEF_min, pedal_max, $DEF_drag)
+	PlaceSlider(pedal, 847, 152)
+	$pedal -> parent_panel := get_ui_id($front_panel)
+
+// PANEL BUTTONS
+	// declare ui_button $gears
+	SummonButton(gears, "gears")
+	PlaceButton(gears, 120, 272)
+
+	$i := 0
+	while(i < $NUM_GROUPS)
+		set_engine_par($ENGINE_PAR_VOLUME, 629961, 0,-1 , -1)
+	end while
+
+// HIDE PANELS
+	$front_panel -> hide := $HIDE_PART_NOTHING
+	$back_panel -> hide := $HIDE_WHOLE_CONTROL
+
+// DEBUG SLIDER
+
+end on
+
+on_post_init
+  call update_all
+end_on
+
+// MAIN FUNCTIONS
+
+function update_all
+  call updateVerb
+  call updateHammer
+  call updatePedal
+  call updateLow
+end function
+
+////////////////////////////// DEBUG
+function update_debug
+		set_control_par($move_element_x,$CONTROL_PAR_HIDE,%debug_states[debug_view])
+		set_control_par($move_element_y,$CONTROL_PAR_HIDE,%debug_states[debug_view])
+end function
+
+function updateMoveElement
+  move_control_px(verb,$move_element_x,$move_element_y)
+	message("X: " & $move_element_x & " | Y: " & $move_element_y)
+end function
+////////////////////////////// 
+
+////////////////////////////// FUNCTIONS
+function updateGears
+	$front_panel -> hide := %debug_states[abs(1 - gears)]
+	$back_panel -> hide := %debug_states[gears]
+	set_skin_offset($offset * gears)
+end function
+
+function updateLow
+  set_engine_par($ENGINE_PAR_CUTOFF, $low, -1, 3, 1)
+end function
+
+function updateVerb
+	if(verb < 584)
+		xv := verb
+		S1_XFade(xv,1000,v1,v2)
+		set_engine_par($ENGINE_PAR_SENDLEVEL_0, v1 * 100, -1, 5, $NI_BUS_OFFSET)
+		set_engine_par($ENGINE_PAR_VOLUME, verb_defval, -1, -1, $NI_BUS_OFFSET)
+		message("under | v1: " & v1 & " | v2: " & v2 & " | xv: " & xv & " | disp: " & get_engine_par_disp($ENGINE_PAR_VOLUME, -1, -1, $NI_BUS_OFFSET))
+		else
+			set_engine_par($ENGINE_PAR_SENDLEVEL_0, verb_defval, -1, 5, $NI_BUS_OFFSET)
+			if(verb >= 1167)
+				set_engine_par($ENGINE_PAR_VOLUME, 0, -1, -1, $NI_BUS_OFFSET)
+				message("max")
+				else
+					xv := 584 - (verb - 584)
+		  		S1_XFade(xv,1000,v1,v2)
+		  		set_engine_par($ENGINE_PAR_VOLUME, v1 * 100, -1, -1, $NI_BUS_OFFSET)
+		  		message("over | v1: " & v1 & " | v2: " & v2 & " | xv: " & xv & " | disp: " & get_engine_par_disp($ENGINE_PAR_VOLUME, -1, -1, $NI_BUS_OFFSET))
+			end if
+	end if
+end function
+
+function updateHammer
+  	$i := 0
+	while($i < $num_release)
+		set_engine_par($ENGINE_PAR_VOLUME, %vol_ep_2[$hammer], %release_group[$i],-1 , -1)
+		inc($i)
+	end while
+end function
+
+function updatePedal
+  	$i := 0
+	while($i < $num_pedal)
+		set_engine_par($ENGINE_PAR_VOLUME, %vol_ep_2[$pedal], %pedal_group[$i],-1 , -1)
+		inc($i)
+	end while
+end function
+
+function release_off
+	AllowGroup(hit_group, num_hit)
+	DisallowGroup(release_group, num_release)
+end function
+
+function release_on
+	DisallowGroup(hit_group, num_hit)
+	AllowGroup(release_group, num_release)
+end function
+
+////////////////////////////// 
+
+
+//////////////////// ON NOTE
+on note
+	message("note on")
+	%key_id[$EVENT_NOTE] := $EVENT_ID
+  disallow_group($ALL_GROUPS)
+  $i := 0
+  while ($i<=($num_release-1))
+      allow_group(note_group[$i])
+    inc($i)
+  end while
+  _reset_rls_trig_counter($EVENT_NOTE)
+	// AllowGroup(hit_group, num_hit)
+	// DisallowGroup(release_group, num_release)
+	// if (%CC[64] >= 64)
+ //    $rls_on := 0
+ //  else
+ //    $rls_on := 1
+ //  end if
+	// $EID := $EVENT_ID
+	// inc($keys_down)
+	// message(get_engine_par($ENGINE_PAR_VOLUME, 0,-1 , -1))
+end on
+
+///////////////////// ON RELEASE
+on release
+	message("release")
+	disallow_group($ALL_GROUPS)
+  if (%key_id[$EVENT_NOTE]=$EVENT_ID)
+    $i := 0
+    while ($i<=($num_release-1))
+        allow_group(release_group[i])
+      inc($i)
+    end while
+    play_note($EVENT_NOTE,$EVENT_VELOCITY,0,-1)
+  end if
+	// if($EVENT_ID = EID and rls_on = 1 and %CC[64] < 64)
+		
+	// end if
+	// DisallowGroup(hit_group, num_hit)
+	// AllowGroup(release_group, num_release)
+	// $new_id := play_note($EVENT_NOTE,$EVENT_VELOCITY,0,0)
+	// dec($keys_down)
+	// if($keys_down < 0)
+	// 	$keys_down := 0
+	// end if
+end on
+
+// ON CONTROLLER
+on controller
+	if ($CC_NUM = 64) // pedal = cc 64
+		if(%CC[64] = 0) // if pedal is up
+			$new_id := play_note(0,10,0,0)
+		end if
+		if (%CC[64] = 127) // if peddal down
+			if($keys_down = 0) // no notes are down
+				$new_id := play_note(1,10,0,0)
+			end if
+			$flag := 1
+		end if 
+	end if
+end on
+
+on ui_control (debug_view)
+	call update_debug
+end on
+
+// GEARS
+on ui_control ($gears)
+	call updateGears
+end on
+
+// MAIN UI Control
+on ui_control($low)
+	call update_all
+end on
+
+on ui_control(verb)
+	call update_all
+end on
+
+on ui_control($hammer)
+	call update_all
+end on
+
+on ui_control($pedal)
+	call update_all
+end on
+
+////////////////////////////// DEBUG
+on ui_control($move_element_x)
+	call updateMoveElement
+end on
+
+on ui_control($move_element_y)
+	call updateMoveElement
+end on
+////////////////////////////// 

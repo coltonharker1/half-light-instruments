@@ -1,0 +1,769 @@
+import "HandyDandyMacros.ksp"
+import "KSPMathV702.ksp"
+
+on init
+
+	message("")
+	//import "verb_ep.ksp"
+	import "ui_images.ksp"
+
+	SetMathMode(FL+FE,DG)
+
+	// BIG BOBS
+	declare v1
+	declare v2
+	declare xv
+
+	declare debug := 1
+
+	{background}
+	declare width := 1000
+	declare height := 596
+
+	{DEF values}
+
+	declare $def_slider_min := 0
+	declare $def_slider_max := 1000000
+	declare $def_drag := -1000
+
+
+	{iterators}
+
+	declare $i
+	declare $j
+
+	declare %btn_states[6] := (0,0,0,0,0,0)
+
+  	declare $start := -1
+  	declare $end := -1
+  	declare $btn_num := -1
+  	declare $current_range := -1
+  	declare $done := 0
+  	declare $max_vel := 0
+	declare $min_vel := 0
+
+	declare $automation_id := 0
+
+	declare %range_btn_uids[6]
+	declare %range_trims[6] := (540039, 500000, 462937, 428622, 396850, 367434)
+	declare $next_trim := 0
+	declare $current_trim := 0
+	declare $range_num := 0
+
+	declare %divisions[15] := (16, 15, 17, 13, 12, 15, 10, 9, 12, 8, 7, 9, 6, 5, 7) 
+	declare !divisions_text[15] := ("1/16t", "1/16", "1/16d", "1/8t", "1/8", "1/8d", "1/4t", "1/4", "1/4d", "1/2t", "1/2", "1/2d", "wt", "w", "wd")
+
+	declare %hi_freq[11] := (1000000, 957354, 923762, 896315, 862722, 819414, 791967, 758375, 715066, 654027, 610719)
+	declare %lo_freq[11] := (0, 98695, 169451, 203043, 264083, 340983, 445331, 506371, 549679, 610719, 654027)
+
+	declare %group_9[3] := (0, 1, 2)
+	declare %group_20[3] := (3, 4, 5)
+	declare %group_30[3] := (6, 7, 8)
+	declare %group_50[3] := (9, 10, 11)
+	declare %group_80[3] := (12, 13, 14)
+	declare %group_127[3] := (15, 16, 17)
+	declare %groups[6 * 3] := (...
+		{group_9}0,1,2,...
+		{group_20}3,4,5,...
+		{group_30}6,7,8,...
+		{group_50}9,19,11,...
+		{group_80}12,13,14,...
+		{group_127}15,16,17)
+	declare num_groups := 6
+	declare %group[10]
+
+	declare min_caps[6] := (0, 10, 21, 31, 51, 81)
+	declare min_vals[6] := (9, 20, 40, 60, 75, 127)
+	declare max_caps[6] := (9, 20, 30, 50, 80, 127)
+	declare max_vals[6] := (9, 39, 54, 74, 100, 127)
+
+
+	declare !ir_samples[13] := ("TAPEDVERBS/anvil.wav", "TAPEDVERBS/Breath.wav", "TAPEDVERBS/Drone.wav", "TAPEDVERBS/Luft.wav", "TAPEDVERBS/MoonChamber.wav","TAPEDVERBS/Nightshade.wav","TAPEDVERBS/Pendulum.wav","TAPEDVERBS/SettingSun.wav","TAPEDVERBS/SleepingCar.wav","TAPEDVERBS/SoftSky.wav","TAPEDVERBS/TapedSoftSky.wav","TAPEDVERBS/ThePianist.wav","TAPEDVERBS/WearingThin.wav")
+
+
+	declare %slider_uids[22]
+	declare %defaults[22]
+	declare %ranges[6]
+
+	declare %debug_states[2] := ($HIDE_WHOLE_CONTROL, $HIDE_PART_NOTHING)
+
+	import "debug_ui.ksp"
+
+	{ 
+	  SummonSlider(#name#, #img#, #min#, #max#, #X#, #Y#, #def#, #help#) 
+	  SummonButton(#name#, #img#, #X#, #Y#)
+      SummonLabel(#name#, #X#, #Y#)
+	}
+
+	LetThereBePerfview(height, width, @background)
+
+	{TOP PANEL}
+	SummonSlider(spread, @sldr_105px, def_slider_min, 850000, 655, 14, 500000, "Spread: controls stereo field of instrument") // 0
+	SummonSlider(trim, @sldr_105px, def_slider_min, def_slider_max, 787, 14, 396850, "Trim: Regulates the output level of instrument") // 1
+	SummonLabel(trim_label, 825, 120)
+
+	{ECHO}
+	SummonSlider(echo_mix, @sldr_131px, def_slider_min, 670, 160, 206, 0, "Echo Mix: controls the mix level of echo effect") // 2
+	SummonLabel(echo_mix_label, 211, 355)
+	SummonSlider(echo_time, @sldr_51_step_px, def_slider_min, 14, 122, 178, 7, "T: Echo Time") // 3
+	SummonSlider(echo_time_lock, @sldr_51px, def_slider_min, def_slider_max, 122, 178, 150000, "T: Echo Time Locked") // 4
+	SummonLabel(time_label_div, 136, 288)
+	SummonLabel(time_label_ms, 127, 228)
+	SummonButton(echo_lock, @lock, 181, 189, "Lock: sync echo to host")
+	SummonSlider(echo_feedback, @sldr_51px, def_slider_min, def_slider_max, 278, 178, 500000, "F: Echo Feedback") // 5
+	SummonLabel(echo_feedback_label, 285, 227)
+	SummonSlider(echo_lo, @sldr_51px, def_slider_min, def_slider_max, 121, 314, 0, "Echo Lo: Controls Low cut of echo repeats") // 6
+	SummonSlider(echo_hi, @sldr_51px_echo_hi, def_slider_min, def_slider_max, 277, 314, 1000000, "Echo Hi: Controls hi cut of echo repeats") // 7
+	SummonButton(echo_bounce, @bounce, 185, 159, "")
+	SummonMenu(echo_type, @echo_types, 185, 363)
+	SummonButton(echo_bypass, @bypass, 306, 260, "")
+
+	{RANGE}
+	SummonButton(range_1, @21px_btn, 404, 157, "Range: Selects sample groups ranging in intensity from soft to aggressive")
+	SummonButton(range_2, @21px_btn, 438, 157, "Range: Selects sample groups ranging in intensity from soft to aggressive")
+	SummonButton(range_3, @21px_btn, 472, 157, "Range: Selects sample groups ranging in intensity from soft to aggressive")
+	SummonButton(range_4, @21px_btn, 506, 157, "Range: Selects sample groups ranging in intensity from soft to aggressive")
+	SummonButton(range_5, @21px_btn, 540, 157, "Range: Selects sample groups ranging in intensity from soft to aggressive")
+	SummonButton(range_6, @21px_btn, 574, 157, "Range: Selects sample groups ranging in intensity from soft to aggressive")
+
+	%range_btn_uids[0] := range_1_id
+	%range_btn_uids[1] := range_2_id
+	%range_btn_uids[2] := range_3_id
+	%range_btn_uids[3] := range_4_id
+	%range_btn_uids[4] := range_5_id
+	%range_btn_uids[5] := range_6_id
+
+	{EQ}
+	SummonSlider(eq_lo, @sldr_78_step_px, def_slider_min, 10, 415, 263, 0, "Lo Cut: Pultec HLF-3C inspired Low Cut: 50, 80, 100, 150, 250, 500, 750, 1000, 1.5k, 2k") // 8
+	SummonSlider(eq_hi, @sldr_78_step_px, def_slider_min, 10, 509, 263, 10, "Hi Cut: Pultec HLF-3C inspired Hi Cut: 15k, 12k, 10k, 8k, 6k, 5k, 4k, 3k, 2k, 1.5k") // 9
+	SummonSlider(eq_plusminus, @sldr_26px, def_slider_min, def_slider_max, 488, 236, 500000, "+/-: 18db boot & cut for single band eq") // 10
+	SummonLabel(eq_plusminus_label, 482, 222)
+	SummonSlider(eq_hz, @sldr_26px, def_slider_min, 825707, 488, 340, 592717, "Hz: single band eq ranging 20hz-6k") // 11
+	SummonLabel(eq_hz_label, 456, 366)
+
+	{VERB}
+	SummonSlider(verb_mix, @sldr_157px, def_slider_min, 670, 731, 191, 152, "Reverb Mix: controls the mix level of reverb effect") // 12
+	SummonLabel(verb_mix_label, 794, 345)
+	SummonSlider(verb_hi, @sldr_51px_echo_hi, 232990, def_slider_max, 665, 206, 1000000, "Reverb Hi: controls low pass of reverb effect") // 13
+	SummonSlider(verb_lo, @sldr_52px, def_slider_min, 625977, 665, 285, 0, "Reverb Lo: controls hi pass of reverb effect") // 14
+	SummonButton(verb_bypass, @bypass, 797, 155, "")
+	SummonMenu(verb_type, @verb_types, 770, 364)
+
+	{Bottom Panel}
+
+	SummonSlider(curve, @sldr_40px, def_slider_min, def_slider_max, 237, 424, 334000, "") // 15
+	SummonSlider(attack, @sldr_52px, def_slider_min, def_slider_max, 69, 418, 45442, "") // 16
+	SummonSlider(decay, @sldr_52px, def_slider_min, def_slider_max, 392, 418, 628563, "") // 17
+	SummonSlider(hold, @sldr_40px, def_slider_min, def_slider_max, 560, 424, 120000, "") // 18
+	SummonSlider(sustain, @sldr_52px, def_slider_min, def_slider_max, 715, 418, 1000000, "") // 19
+	SummonSlider(release, @sldr_52px, def_slider_min, def_slider_max, 877, 418, 610817, "") // 20
+	SummonSlider(tune, @sldr_52px_test, -24, 24, 475, 390, 0, "Tune: +/- two octaves") // 21
+	SummonLabel(tune_label, 456, 440)
+
+	
+end on
+
+on_post_init
+	call update_defaults
+	call update_all
+end_on
+
+{FUNCTIONS}
+
+function update_defaults
+	while($i < 22)
+		set_control_par(%slider_uids[i], $CONTROL_PAR_VALUE, defaults[i])
+		inc(i)
+	end while
+end function
+
+function update_all
+	call update_spread
+	call update_trim
+	call update_echo_mix
+	call update_echo_time
+	call update_echo_time_lock
+	call update_echo_lock
+	call update_echo_feedback
+	call update_echo_lo
+	call update_echo_hi
+	call update_echo_bounce
+
+	call update_labels // last
+end function
+
+////////////////////////////// DEBUG
+function update_debug
+		set_control_par($move_element_x,$CONTROL_PAR_HIDE,%debug_states[debug_view])
+		set_control_par($move_element_y,$CONTROL_PAR_HIDE,%debug_states[debug_view])
+end function
+
+function updateMoveElement
+  move_control_px(spread,$move_element_x,$move_element_y)
+	message("X: " & $move_element_x & " | Y: " & $move_element_y)
+end function
+////////////////////////////// 
+
+function update_labels
+	set_text ($trim_label,get_engine_par_disp($ENGINE_PAR_GN_GAIN,-1,7,$NI_MAIN_BUS))
+	set_text ($echo_mix_label, ceil(int_to_real($echo_mix)/670.0 * 100.0))
+	set_text ($time_label_div,!divisions_text[$echo_time])
+	set_text ($time_label_ms,get_engine_par_disp($ENGINE_PAR_RDL_TIME,-1,4,$NI_MAIN_BUS))
+	if(echo_lock = 1)
+		set_text ($time_label_div,!divisions_text[$echo_time])
+	end if
+	set_text ($echo_feedback_label,get_engine_par_disp($ENGINE_PAR_RDL_FEEDBACK,-1,4,$NI_MAIN_BUS))
+	set_text ($trim_label, get_engine_par_disp($ENGINE_PAR_GN_GAIN,-1,7,$NI_MAIN_BUS))
+	set_text ($eq_plusminus_label,get_engine_par_disp($ENGINE_PAR_GAIN1,-1,5,$NI_MAIN_BUS))
+	set_text ($eq_hz_label,get_engine_par_disp($ENGINE_PAR_FREQ1,-1,5,$NI_MAIN_BUS))
+	set_text ($verb_mix_label, ceil(int_to_real($verb_mix)/670.0 * 100.0))
+	set_text ($tune_label,get_engine_par_disp($ENGINE_PAR_TUNE,5,-1,-1))
+end function
+
+function update_spread
+	if (get_control_par(get_ui_id($spread),$CONTROL_PAR_KEY_ALT) = 1)
+		set_engine_par($ENGINE_PAR_STEREO, defaults[0], -1, 3, $NI_MAIN_BUS)}
+		set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, real_to_int(396850.0 - (int_to_real(defaults[0]) * 0.071247058823529)), -1, 3, $NI_MAIN_BUS)}
+		$spread := defaults[0]
+		else
+			set_engine_par($ENGINE_PAR_STEREO, $spread, -1, 3, $NI_MAIN_BUS)}
+			set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, real_to_int(396850.0 - (int_to_real($spread) * 0.071247058823529)), -1, 3, $NI_MAIN_BUS)}
+	end if
+end function
+
+function update_trim
+	if (get_control_par(get_ui_id($trim),$CONTROL_PAR_KEY_ALT) = 1)
+		set_engine_par($ENGINE_PAR_GN_GAIN, defaults[1], -1, 7, $NI_MAIN_BUS)
+		$trim := defaults[1]
+		else
+			set_engine_par($ENGINE_PAR_GN_GAIN, $trim, -1, 7, $NI_MAIN_BUS)
+	end if
+end function
+
+function update_echo_mix
+	if (get_control_par(get_ui_id($echo_mix),$CONTROL_PAR_KEY_ALT) = 1)
+		set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, %vol_ep[defaults[2]], -1, 4, $NI_MAIN_BUS)
+		set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, %vol_ep[334], -1, 4, $NI_MAIN_BUS)
+		$echo_mix := defaults[2]
+		else
+			if($echo_bypass = 0)
+				if($echo_mix < 335)
+					set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, %vol_ep[$echo_mix], -1, 4, $NI_MAIN_BUS)
+					set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, %vol_ep[334], -1, 4, $NI_MAIN_BUS)
+				else
+					set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, %vol_ep[669 - $echo_mix], -1, 4, $NI_MAIN_BUS)
+					set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, %vol_ep[334], -1, 4, $NI_MAIN_BUS)
+				end if
+				else
+					set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, %vol_ep[0], -1, 4, $NI_MAIN_BUS)
+					set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, %vol_ep[334], -1, 4, $NI_MAIN_BUS)
+			end if
+	end if
+end function
+
+function update_echo_time
+	set_engine_par($ENGINE_PAR_RDL_TIME_UNIT, %divisions[$echo_time], -1, 4, $NI_MAIN_BUS)
+	if (get_control_par(get_ui_id($echo_time),$CONTROL_PAR_KEY_ALT) = 1)
+		$echo_time := defaults[3]
+	end if
+	if(((echo_time + 1) mod 3) # 1)
+		set_engine_par($ENGINE_PAR_RDL_TIME, 0 	, -1, 4, $NI_MAIN_BUS)
+		else
+			set_engine_par($ENGINE_PAR_RDL_TIME, 181818 	, -1, 4, $NI_MAIN_BUS)
+	end if
+end function
+
+function update_echo_time_lock
+	if (get_control_par(get_ui_id($echo_time_lock),$CONTROL_PAR_KEY_ALT) = 1)
+		$echo_time_lock := defaults[4]
+	end if
+	set_engine_par($ENGINE_PAR_RDL_TIME, $echo_time_lock, -1, 4, $NI_MAIN_BUS)
+end function
+
+function update_echo_lock
+	select($echo_lock)
+		case 0
+			hide_part($echo_time, $HIDE_WHOLE_CONTROL)
+			hide_part($time_label_div, $HIDE_WHOLE_CONTROL)
+			hide_part($echo_time_lock, $HIDE_PART_NOTHING)
+			hide_part($time_label_ms, $HIDE_PART_NOTHING)
+			hide_part ($time_label_ms,$HIDE_PART_BG)
+			set_engine_par($ENGINE_PAR_RDL_TIME_UNIT, 0, -1, 4, $NI_MAIN_BUS)
+		case 1
+			hide_part($echo_time, $HIDE_PART_NOTHING)
+			hide_part($time_label_div, $HIDE_PART_NOTHING)
+			hide_part ($time_label_div,$HIDE_PART_BG)
+			hide_part($echo_time_lock, $HIDE_WHOLE_CONTROL)
+			hide_part($time_label_ms, $HIDE_WHOLE_CONTROL)
+	end select
+end function
+
+function update_echo_feedback
+	if (get_control_par(get_ui_id($echo_feedback),$CONTROL_PAR_KEY_ALT) = 1)
+		$echo_feedback := defaults[5]
+		set_engine_par($ENGINE_PAR_RDL_FEEDBACK, $echo_feedback, -1, 4, $NI_MAIN_BUS)
+	end if
+	set_engine_par($ENGINE_PAR_RDL_FEEDBACK, $echo_feedback, -1, 4, $NI_MAIN_BUS)
+end function
+
+function update_echo_lo
+	if (get_control_par(get_ui_id($echo_lo),$CONTROL_PAR_KEY_ALT) = 1)
+		$echo_lo := defaults[6]
+		set_engine_par($ENGINE_PAR_RDL_LOWCUT, $echo_lo, -1, 4, $NI_MAIN_BUS)
+	end if
+	set_engine_par($ENGINE_PAR_RDL_LOWCUT, $echo_lo, -1, 4, $NI_MAIN_BUS)
+end function
+
+function update_echo_hi
+	if (get_control_par(get_ui_id($echo_hi),$CONTROL_PAR_KEY_ALT) = 1)
+		$echo_hi := defaults[7]
+		set_engine_par($ENGINE_PAR_RDL_HIGHCUT, $echo_hi, -1, 4, $NI_MAIN_BUS)
+	end if
+	set_engine_par($ENGINE_PAR_RDL_HIGHCUT, $echo_hi, -1, 4, $NI_MAIN_BUS)
+end function
+
+function update_echo_bounce
+	set_engine_par($ENGINE_PAR_RDL_PINGPONG,$echo_bounce, -1, 4, $NI_MAIN_BUS)
+end function
+
+function update_echo_type
+	select(echo_type)
+		case 1
+			set_engine_par($ENGINE_PAR_RDL_TYPE, 1, -1, 4, $NI_MAIN_BUS)
+			set_engine_par($ENGINE_PAR_RDL_DEPTH, 300000, -1, 4, $NI_MAIN_BUS)
+			set_engine_par($ENGINE_PAR_RDL_BBDTYPE, 0, -1, 4, $NI_MAIN_BUS)
+			set_engine_par($ENGINE_PAR_RDL_RATE, 998000, -1, 4, $NI_MAIN_BUS)
+			set_control_par(get_ui_id(echo_type), $CONTROL_PAR_PICTURE_STATE, 0) // might be 1
+		case 2
+			set_engine_par($ENGINE_PAR_RDL_TYPE, 2, -1, 4, $NI_MAIN_BUS)
+			set_engine_par($ENGINE_PAR_RDL_NOISE, 0, -1, 4, $NI_MAIN_BUS)
+			set_engine_par($ENGINE_PAR_RDL_TAPEAGE, 500000, -1, 4, $NI_MAIN_BUS)
+			set_engine_par($ENGINE_PAR_RDL_SATURATION, 120000, -1, 4, $NI_MAIN_BUS)
+			set_control_par(get_ui_id(echo_type), $CONTROL_PAR_PICTURE_STATE, 1)
+		case 3
+			set_engine_par($ENGINE_PAR_RDL_TYPE, 4, -1, 4, $NI_MAIN_BUS)
+			set_engine_par($ENGINE_PAR_RDL_DENSE, 1, -1, 4, $NI_MAIN_BUS)
+			set_control_par(get_ui_id(echo_type), $CONTROL_PAR_PICTURE_STATE, 2)
+	end select
+end function
+
+function update_range
+	i := 0
+	while(i < 6)
+		$btn_num := i
+		$done := 0
+
+		if($btn_num = $start)
+			if($end # -1)
+				$start := $end
+				$end := -1
+				else
+					$start := -1
+			end if
+			set_control_par(%range_btn_uids[i], $CONTROL_PAR_VALUE, 0)
+			$done := 1
+		end if
+
+		if($done = 0 and $btn_num = $end)
+			$end := -1
+			$current_trim := $next_trim
+			set_control_par(%range_btn_uids[i], $CONTROL_PAR_VALUE, 0)
+			$done := 1
+		end if
+
+		if($done = 0 and $start = -1 and $end = -1)
+			$start := $btn_num
+			$current_trim := range_trims[i]
+			$next_trim := range_trims[i]
+			set_control_par(%range_btn_uids[i], $CONTROL_PAR_VALUE, 1)
+			$done := 1
+		end if
+
+		if($done = 0 and $start # -1 and $end = -1)
+			if($btn_num > $start)
+				$end := btn_num
+				$current_trim := range_trims[i]
+				done := 1
+			else
+				$end := $start
+				$start := btn_num
+				$current_trim := $next_trim
+				$done := 1
+			end if
+		end if
+
+		if($done = 0 and $start = -1 and $end # -1)
+			if($btn_num < $end)
+				$start := btn_num
+				$next_trim := range_trims[i]
+				done := 1
+			else
+				$start := $end
+				$end := btn_num
+				$current_trim := range_trims[i]
+				$done := 1
+			end if
+		end if
+
+		if($done = 0 and $btn_num > $start)
+			$end := $btn_num
+			$done := 1
+			$current_trim := range_trims[i]
+		end if
+
+		if($done = 0 and $btn_num < $end)
+			$start := $btn_num
+			$next_trim := range_trims[i]
+			$done := 1
+		end if
+
+		set_engine_par($ENGINE_PAR_GN_GAIN, $current_trim, -1, 7, $NI_MAIN_BUS)
+		$trim := $current_trim
+		if(($start > i or $start = -1) and (start # i and $end # i))
+			set_control_par(%range_btn_uids[i], $CONTROL_PAR_VALUE, 0)
+			else
+				set_control_par(%range_btn_uids[i], $CONTROL_PAR_VALUE, 1)
+		end if
+
+		if(($end < i or $start = -1) and ($start # i and $end # i))
+			set_control_par(%range_btn_uids[j], $CONTROL_PAR_VALUE, 0)
+			else 
+				if($end >= i and $start <= i)
+					set_control_par(%range_btn_uids[i], $CONTROL_PAR_VALUE, 1)
+				end if
+		end if
+
+		inc(i)
+	end while
+end function
+
+function update_eq_lo
+	if (get_control_par(get_ui_id($eq_lo),$CONTROL_PAR_KEY_ALT) = 1)
+		$eq_lo := defaults[8]
+	end if
+	if($eq_lo = 0)
+		set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1, -1, 1, $NI_MAIN_BUS)
+		else
+			set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 0, -1, 1, $NI_MAIN_BUS)
+	end if
+	set_engine_par($ENGINE_PAR_CUTOFF, %lo_freq[$eq_lo], -1, 1, $NI_MAIN_BUS)
+end function
+
+
+function update_eq_hi
+	if (get_control_par(get_ui_id($eq_hi),$CONTROL_PAR_KEY_ALT) = 1)
+		$eq_hi := defaults[9]
+	end if
+	if($eq_hi = 10)
+		set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1, -1, 2, $NI_MAIN_BUS)
+		else
+			set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 0, -1, 2, $NI_MAIN_BUS)
+	end if
+	set_engine_par($ENGINE_PAR_CUTOFF, %hi_freq[abs(10 - $eq_hi)], -1, 2, $NI_MAIN_BUS)
+end function
+
+function update_eq_plusminus
+	if (get_control_par(get_ui_id($eq_plusminus),$CONTROL_PAR_KEY_ALT) = 1)
+		$eq_plusminus := defaults[10]
+		set_engine_par($ENGINE_PAR_GAIN1, defaults[10], -1, 5, $NI_MAIN_BUS)
+	end if
+	set_engine_par($ENGINE_PAR_GAIN1, $eq_plusminus, -1, 5, $NI_MAIN_BUS)
+end function
+
+function update_eq_hz
+	if (get_control_par(get_ui_id($eq_hz),$CONTROL_PAR_KEY_ALT) = 1)
+		$eq_hz := defaults[11]
+		set_engine_par($ENGINE_PAR_FREQ1, defaults[11], -1, 5, $NI_MAIN_BUS)
+		else
+			set_engine_par($ENGINE_PAR_FREQ1, $eq_hz, -1, 5, $NI_MAIN_BUS)
+	end if
+end function
+
+function update_verb_mix
+	if (get_control_par(get_ui_id($verb_mix),$CONTROL_PAR_KEY_ALT) = 1)
+		$verb_mix := defaults[12]
+	else
+		if($verb_bypass = 0)
+			if($verb_mix < 335)
+				set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, real_to_int(721.598802 * int_to_real($verb_mix)), -1, 6, $NI_MAIN_BUS)
+				set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, %vol_ep[334], -1, 6, $NI_MAIN_BUS)
+				else
+					set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, %vol_ep[669 - $verb_mix], -1, 6, $NI_MAIN_BUS)
+					set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, 241014 + real_to_int(466.650746 * int_to_real(($verb_mix - 335))), -1, 6, $NI_MAIN_BUS)
+			end if
+		end if
+	end if
+end function
+
+function update_verb_hi
+	if (get_control_par(get_ui_id($verb_hi),$CONTROL_PAR_KEY_ALT) = 1)
+		$verb_hi := defaults[13]
+	end if
+	set_engine_par($ENGINE_PAR_IRC_FREQ_LOWPASS_LR, $verb_hi, -1, 6, $NI_MAIN_BUS)
+end function
+
+function update_verb_lo
+	if (get_control_par(get_ui_id($verb_lo),$CONTROL_PAR_KEY_ALT) = 1)
+		$verb_lo := defaults[14]
+	end if
+	set_engine_par($ENGINE_PAR_IRC_FREQ_HIGHPASS_LR, $verb_lo, -1, 6, $NI_MAIN_BUS)
+end function
+
+function update_verb_bypass // this is iffy 
+	if($verb_bypass = 1)
+		set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, %vol_ep[0], -1, 6, $NI_MAIN_BUS)
+		set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, %vol_ep[334], -1, 6, $NI_MAIN_BUS)
+		else
+			if($verb_mix < 335)
+				set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, %vol_ep[$verb_mix], -1, 6, $NI_MAIN_BUS)
+				set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, %vol_ep[334], -1, 6, $NI_MAIN_BUS)
+				else
+					set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, %vol_ep[334], -1, 6, $NI_MAIN_BUS)
+					set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, %vol_ep[669 - $verb_mix], -1, 6, $NI_MAIN_BUS)
+			end if
+			set_text ($echo_mix_label, ceil(int_to_real($verb_mix)/670.0 * 100.0))
+	end if
+	set_engine_par($ENGINE_PAR_EFFECT_BYPASS, $verb_bypass, -1, 6, $NI_MAIN_BUS)
+end function
+
+function update_verb_type // if this works I am god
+	load_ir_sample(get_folder($GET_FOLDER_PATCH_DIR) & ir_samples[verb_type],6,$NI_MAIN_BUS)
+	set_control_par(get_ui_id(verb_type), $CONTROL_PAR_PICTURE_STATE, verb_type)
+end function
+
+function update_attack
+	$i := 0
+	while($i < $num_groups)
+		if (get_control_par(get_ui_id($attack),$CONTROL_PAR_KEY_ALT) = 1)
+			set_engine_par($ENGINE_PAR_ATTACK, defaults[16], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+			$attack := defaults[16]
+			else
+				set_engine_par($ENGINE_PAR_ATTACK, $attack, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		end if
+		inc($i)
+	end while
+end function
+
+function update_curve
+	$i := 0
+	while($i < $num_groups)
+		if (get_control_par(get_ui_id($curve),$CONTROL_PAR_KEY_ALT) = 1)
+			set_engine_par($ENGINE_PAR_ATK_CURVE, defaults[15], %groups[$i], find_mod($i, "ENV_AHDSR"), -1)
+			$curve := defaults[15]
+			else
+				set_engine_par($ENGINE_PAR_ATK_CURVE, $curve, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		end if
+		inc($i)
+	end while
+end function
+
+function update_hold
+	$i := 0
+	while($i < $num_groups)
+		if (get_control_par(get_ui_id($hold),$CONTROL_PAR_KEY_ALT) = 1)
+			set_engine_par($ENGINE_PAR_HOLD, defaults[18], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+			$hold := defaults[18]
+			else
+				set_engine_par($ENGINE_PAR_HOLD, $hold, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		end if
+		inc($i)
+	end while
+end function
+
+function update_decay
+	$i := 0
+	while($i < $num_groups)
+		if (get_control_par(get_ui_id($decay),$CONTROL_PAR_KEY_ALT) = 1)
+			set_engine_par($ENGINE_PAR_DECAY, defaults[17], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+			$decay := defaults[17]
+			else
+				set_engine_par($ENGINE_PAR_DECAY, $decay, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		end if
+		inc($i)
+	end while
+end function
+
+function update_sustain
+	$i := 0
+	while($i < $num_groups)
+		if (get_control_par(get_ui_id($sustain),$CONTROL_PAR_KEY_ALT) = 1)
+			set_engine_par($ENGINE_PAR_SUSTAIN, defaults[19], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+			$sustain := defaults[19]
+			else
+				set_engine_par($ENGINE_PAR_SUSTAIN, $sustain, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		end if
+		inc($i)
+	end while
+end function
+
+function update_release
+	$i := 0
+	while($i < $num_groups)
+		if (get_control_par(get_ui_id($release),$CONTROL_PAR_KEY_ALT) = 1)
+			set_engine_par($ENGINE_PAR_RELEASE, defaults[20], %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+			$release := defaults[20]
+			else
+				set_engine_par($ENGINE_PAR_RELEASE, $release, %groups[$i], find_mod(%groups[$i], "ENV_AHDSR"), -1)
+		end if
+		inc($i)
+	end while
+end function
+
+function update_tune
+	$i := 0
+	while($i < $num_groups)
+		if (get_control_par(get_ui_id($tune),$CONTROL_PAR_KEY_ALT) = 1)
+			set_engine_par($ENGINE_PAR_TUNE, defaults[21] + 500000, %groups[$i], -1, -1)
+			$tune := defaults[21]
+			else
+				set_engine_par($ENGINE_PAR_TUNE, 500000 + ($tune * 13889), %groups[$i], -1, -1)
+		end if
+		inc($i)
+	end while
+end function
+
+{ON NOTE}
+on note
+	$i := 0
+	disallow_group($ALL_GROUPS)
+	while ($i < 6)
+		$j := 0
+	    if (get_control_par(%range_btn_uids[i], $CONTROL_PAR_VALUE) = 1)
+	        if(max_vel < max_caps[i])
+	        	max_vel := max_vals[i]
+	        end if
+	        if(min_vel > min_caps[i])
+	        	min_vel := min_vals[i]
+	        end if
+	        group[i] := groups[i]
+	        while($j < 3)
+	        	allow_group(group[j])
+	        	inc(j)
+	        end while
+	    end if
+	    inc($i)
+	end while
+	if($EVENT_VELOCITY > $max_vel)
+		message(max_vel)
+		change_velo($EVENT_ID,$max_vel)
+	end if
+	if($EVENT_VELOCITY < $min_vel)
+		change_velo($EVENT_ID,$min_vel)
+	end if
+end on
+
+{ON UI CONTROL}
+on ui_control(spread)
+	call update_all
+end on
+
+on ui_control(trim)
+	call update_all
+end on
+
+on ui_control(echo_mix)
+	call update_all
+end on
+
+on ui_control(echo_time)
+	call update_all
+end on
+
+on ui_control(echo_time_lock)
+	call update_all
+end on
+
+on ui_control(echo_lock)
+	call update_all
+end on
+
+on ui_control(echo_feedback)
+	call update_all
+end on
+
+on ui_control(echo_lo)
+	call update_all
+end on
+
+on ui_control(echo_hi)
+	call update_all
+end on
+
+on ui_control(echo_bounce)
+	call update_all
+end on
+
+on ui_control(echo_type)
+	call update_all
+end on
+
+on ui_control(range_1)
+	call update_all
+end on
+
+on ui_control(range_2)
+	call update_all
+end on
+
+on ui_control(range_3)
+	call update_all
+end on
+
+on ui_control(range_4)
+	call update_all
+end on
+
+on ui_control(range_5)
+	call update_all
+end on
+
+on ui_control(range_6)
+	call update_all
+end on
+
+on ui_control(eq_lo)
+	call update_all
+end on
+
+on ui_control(eq_hi)
+	call update_all
+end on
+
+on ui_control(eq_plusminus)
+	call update_all
+end on
+
+on ui_control(eq_hz)
+	call update_all
+end on
+
+on ui_control(verb_mix)
+	call update_all
+end on
+
+on ui_control(verb_hi)
+	call update_all
+end on
+
+on ui_control(verb_lo)
+	call update_all
+end on
+
+on ui_control(verb_bypass)
+	call update_all
+end on
+
+on ui_control(verb_type)
+	call update_all
+end on
+
+
+
+
+
+
+
+
+
+
+
